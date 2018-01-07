@@ -1,7 +1,10 @@
+// include light_ws2812 library
+#include <cRGB.h>
 #include <WS2812.h>
+#include <EEPROM.h>
 
 #define PIN 10  // Digital output pin (default: 7)
-#define LED_COUNT 20   // Number of LEDs to drive (default: 9)
+#define LED_COUNT 30   // Number of LEDs to drive (default: 9)
 
 const uint8_t curve[16] PROGMEM = {
     1, 2, 3, 4, 6, 8, 11, 16, 22, 32, 45, 63, 90, 127, 180, 255
@@ -11,7 +14,8 @@ enum modes {
     MODE_OFF = 0,
     MODE_BLINK_RGB = 1,
     MODE_COLOR = 2,
-    MODE_FADE_COLOR = 3
+    MODE_FADE_COLOR = 3,
+    MODE_RUNNING_COLOR = 4
 };
 
 enum commands {
@@ -31,11 +35,11 @@ void setup() {
     randomSeed(analogRead(0));
     led.setOutput(PIN);
 
-    current_mode = MODE_COLOR;
-    current_speed = 300;
-    current_color.r = 255;
-    current_color.g = 215;
-    current_color.b = 0;
+    current_mode = EEPROM.read(0);
+    current_speed = EEPROM.read(1);
+    current_color.r = EEPROM.read(2);
+    current_color.g = EEPROM.read(3);
+    current_color.b = EEPROM.read(4);
     printMode();
 }
 
@@ -58,6 +62,9 @@ void loop() {
         case MODE_FADE_COLOR:
             //fadeColor();
             break;
+        case MODE_RUNNING_COLOR:
+            running_color();
+            break;
         default:
             powerDown();
             break;
@@ -68,15 +75,33 @@ void readCommand() {
     int command = Serial.parseInt();
     switch (command) {
         case COMMAND_MODE:
+            Serial.println("Mode?");
+            while(!Serial.available());
             current_mode = Serial.parseInt();
+            EEPROM.write(0, current_mode);
+            Serial.println(current_mode);
             break;
         case COMMAND_SPEED:
+            Serial.println("Speed?");
+            while(!Serial.available());
             current_speed = Serial.parseInt();
+            Serial.println(current_speed);
+            EEPROM.write(1, current_speed);
             break;
         case COMMAND_COLOR:
+            Serial.println("Color?");
+            while(!Serial.available());
             current_color.r = Serial.parseInt();
+            EEPROM.write(2, current_color.r);
+            Serial.println(current_color.r);
+            while(!Serial.available());
             current_color.g = Serial.parseInt();
+            EEPROM.write(3, current_color.g);
+            Serial.println(current_color.g);
+            while(!Serial.available());
             current_color.b = Serial.parseInt();
+            Serial.println(current_color.b);
+            EEPROM.write(4, current_color.b);
             break;
         default:
             Serial.println("Unknown Command");
@@ -94,6 +119,9 @@ void printMode() {
             break;
         case MODE_COLOR:
             Serial.print("MODE: COLOR");
+            break;
+        case MODE_RUNNING_COLOR:
+            Serial.print("MODE: RUNNING_COLOR");
             break;
         default:
             Serial.print("UNKNOWN MODE: ");
@@ -151,7 +179,6 @@ void blinkRGB(int speed) {
     value.g = 255;
     value.b = 0;
     setAllLED(value);
-    hans = schwanz;
 
     delay(speed);
 
@@ -186,3 +213,36 @@ void fadeColor(cRGB color, int speed) {
         delay(speed);
     }
 }
+
+void running_color() {
+    for (int i = 0; i < LED_COUNT; i++) {
+        cRGB halfValue;
+        halfValue.r = current_color.r/16;
+        halfValue.g = current_color.g/16;
+        halfValue.b = current_color.b/16;
+        
+        cRGB quarterValue;
+        quarterValue.r = current_color.r/32;
+        quarterValue.g = current_color.g/32;
+        quarterValue.b = current_color.b/32;
+        
+        powerDown();
+        if (i > 2) {
+            led.set_crgb_at(i-2, halfValue);
+        }
+        if (i < LED_COUNT - 2) {
+            led.set_crgb_at(i+2, halfValue);
+        }
+        if (i > 1) {
+            led.set_crgb_at(i-1, halfValue);
+        }
+        if (i < LED_COUNT - 1) {
+            led.set_crgb_at(i+1, halfValue);
+        }
+        delay(1);
+        led.set_crgb_at(i, current_color);
+        led.sync();
+        delay(current_speed);
+    }
+}
+
