@@ -266,23 +266,25 @@ void running_parallel() {
     quarterValue.g = current_color.g/32;
     quarterValue.b = current_color.b/32;
 
-    // have to go through from 0-14 and 29-15
-    for (int i = 0; i < LED_COUNT/2; i++) {
+    int led_count_half = LED_COUNT / 2;
+
+    // have to go through from 0-14 and 29-15 (when it's 30 LEDs, otherwise adapt values accordingly)
+    for (int i = 0; i < led_count_half; i++) {
         powerDown();
 
         // first side (0-14)
-        led.set_crgb_at(mod(i-2, 14), halfValue);
-        led.set_crgb_at(mod(i-1, 14), halfValue);
+        led.set_crgb_at(mod(i-2, led_count_half), halfValue);
+        led.set_crgb_at(mod(i-1, led_count_half), halfValue);
         led.set_crgb_at(i, current_color);
-        led.set_crgb_at(mod(i+1, 14), halfValue);
-        led.set_crgb_at(mod(i+2, 14), halfValue);
+        led.set_crgb_at(mod(i+1, led_count_half), halfValue);
+        led.set_crgb_at(mod(i+2, led_count_half), halfValue);
 
         // second side (29-15)
-        led.set_crgb_at(29 - mod(i-2, 14), halfValue);
-        led.set_crgb_at(29 - mod(i-1, 14), halfValue);
-        led.set_crgb_at(29 - i, current_color);
-        led.set_crgb_at(29 - mod(i+1, 14), halfValue);
-        led.set_crgb_at(29 - mod(i+2, 14), halfValue);
+        led.set_crgb_at(LED_COUNT-1 - mod(i-2, led_count_half), halfValue);
+        led.set_crgb_at(LED_COUNT-1 - mod(i-1, led_count_half), halfValue);
+        led.set_crgb_at(LED_COUNT-1 - i, current_color);
+        led.set_crgb_at(LED_COUNT-1 - mod(i+1, led_count_half), halfValue);
+        led.set_crgb_at(LED_COUNT-1 - mod(i+2, led_count_half), halfValue);
 
         delay(1);
         led.sync();
